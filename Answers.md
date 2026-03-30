@@ -1,0 +1,2494 @@
+# 1. What is meant by IPC Mechanism?
+
+```c
+1. IPC (Inter-Process Communication) is a mechanism that allows processes to communicate with each other and share data.
+2. It is mainly used when multiple processes need to coordinate their actions or exchange information in an operating system.
+```
+# 2. Why we use IPC Mechanism? 
+```c
+1. Multiple processes did not communicate with eachother directly. They use IPC Mechanism to communicate between multiple process.
+
+```
+# 3. What are the types of IPC Mechanism's?  
+
+```c
+1. Pipe's
+2. Named pipes
+3. Message Queue
+4. Shared memory
+5. Semaphores
+
+```
+# 4. What is meant by “unicast” and “multicast” IPC?  
+
+```c
+Unicast IPC
+
+Definition:
+Unicast IPC means communication between one sender and one receiver process only.
+
+In simple words:
+
+One process sends a message → Only one specific process receives it.
+
+
+Multicast IPC
+
+Definition:
+Multicast IPC means communication between one sender and multiple receivers simultaneously.
+
+In simple words:
+
+One process sends a message → Multiple processes receive it at the same time.
+```
+# 5. What is meant by PIPES?  
+
+```c
+1. It is an IPC Mechanism tha can be only used in related process(i.e, Parent and child process)
+2. Pipes can be accessed via basic i/o calls or universal i/o calls.
+```
+# 6. What is meant by Blocking Calls? 
+
+```c
+1. A blocking call is a type of function or system call that does not return control to the program until the requested operation is completed.
+2. In simple words — the process waits (is blocked) until the operation finishes.
+```
+# 7. What are the types of Blocking Calls?
+```c
+These blocking calls can be categorized based on what type of operation causes the block.
+
+1. Blocking I/O Calls
+
+These are the most common type of blocking calls.
+They block a process while performing Input/Output (I/O) operations such as reading or writing.
+
+Examples:
+
+read() → waits until data is available to read
+
+write() → waits until the data is written completely
+
+accept() → waits until a client connects (in socket programming)
+
+recv() and send() → wait for data transfer in network sockets
+
+2. Blocking Synchronization Calls
+
+These occur when a process waits for synchronization with another process or thread.
+Used to prevent race conditions or ensure proper order of execution.
+
+Examples:
+
+wait() → waits for a child process to finish
+
+pthread_join() → waits for a thread to complete
+
+sem_wait() → waits for a semaphore to be available
+
+pthread_mutex_lock() → waits if the mutex is already locked
+
+3. Blocking System Calls (General)
+
+These include any kernel-level call that waits for an event or resource to become available.
+They are not limited to I/O or synchronization.
+
+Examples:
+
+sleep() → process blocks for a certain time
+
+pause() → blocks until a signal is received
+
+select() or poll() → block until one of multiple file descriptors becomes ready
+
+nanosleep() → suspends execution for a specific duration
+
+4. Blocking Communication Calls (IPC)
+
+In Inter-Process Communication, blocking occurs when a process waits for data from another process.
+
+Examples:
+
+Pipes: read() blocks until data is written to pipe
+
+Message Queues: msgrcv() blocks until a message is available
+
+Sockets: recv() blocks until data arrives
+
+Shared Memory: Often used with semaphores → blocked until allowed access
+
+
+| Type of Blocking Call            | Description                                 | Example Functions                        |
+| -------------------------------- | ------------------------------------------- | ---------------------------------------- |
+| **Blocking I/O**                 | Waits for input/output to complete          | `read()`, `write()`, `accept()`          |
+| **Blocking Synchronization**     | Waits for another process/thread/resource   | `wait()`, `sem_wait()`, `pthread_join()` |
+| **Blocking System Call**         | Waits for a time/event/resource             | `sleep()`, `pause()`, `select()`         |
+| **Blocking Communication (IPC)** | Waits for data/message from another process | `msgrcv()`, `recv()`, `pipe read()`      |
+
+
+```
+
+# 8. What are the different types of I/O Calls? 
+
+```c
+In an operating system, I/O (Input/Output) calls refer to system calls or functions that perform data transfer between a process and an I/O device (like a file, network socket, or pipe).
+
+There are 4 main types of I/O operations based on how the process interacts with the kernel and whether it waits for the operation to finish.
+
+1. Blocking I/O
+
+Definition:
+In blocking I/O, the process waits (is blocked) until the I/O operation (read/write) is completely finished.
+
+Working:
+
+Process requests data (e.g., read()).
+
+Process is put to sleep until the data is ready.
+
+Once data is available, it’s copied to user space.
+
+Process resumes execution.
+
+Example Code:
+
+char buf[100];
+int n = read(fd, buf, sizeof(buf)); // blocks until data arrives
+
+
+Diagram:
+
+Process:  |---request--->| (waiting...) |<---data ready---|
+
+
+ Advantage: Simple and easy to implement.
+ Disadvantage: Process cannot do anything else while waiting.
+
+2. Non-Blocking I/O
+
+Definition:
+In non-blocking I/O, the process does not wait if the data is not ready.
+The system call returns immediately — either with data or an error (like EAGAIN).
+
+Working:
+
+Process calls I/O function.
+
+If data is not ready, call returns immediately.
+
+Process can do other work and try again later.
+
+Example Code:
+
+fcntl(fd, F_SETFL, O_NONBLOCK); // Set file descriptor to non-blocking
+int n = read(fd, buf, sizeof(buf));
+if (n < 0)
+    perror("No data available yet!");
+
+
+ Advantage: CPU not wasted waiting.
+ Disadvantage: Requires repeated polling (checking again and again).
+
+3. I/O Multiplexing (a.k.a. Event-driven I/O)
+
+Definition:
+The process uses select(), poll(), or epoll() to wait for multiple I/O events simultaneously.
+It only blocks when waiting for any one of several I/O sources to become ready.
+
+Working:
+
+Process registers multiple file descriptors.
+
+Waits until at least one becomes ready.
+
+Performs I/O only on ready descriptors.
+
+Example Code:
+
+fd_set readfds;
+FD_ZERO(&readfds);
+FD_SET(fd1, &readfds);
+FD_SET(fd2, &readfds);
+
+select(maxfd + 1, &readfds, NULL, NULL, NULL); // Blocks until one is ready
+
+
+ Advantage: Efficient for handling multiple I/O sources (like servers).
+ Disadvantage: Slightly more complex to code.
+
+4. Asynchronous (AIO) I/O
+
+Definition:
+In asynchronous I/O, the process starts an I/O operation and continues executing without waiting.
+When the I/O finishes, the kernel notifies the process (via signal or callback).
+
+Working:
+
+Process requests I/O.
+
+Kernel performs I/O in background.
+
+Process continues doing other work.
+
+Kernel sends notification when done.
+
+Example (Pseudo-code):
+
+aio_read(&aiocb); 
+
+ Advantage: Best performance; process never blocks.
+Disadvantage: Most complex to implement and debug.
+
+🔸 Comparison Table
+| Type                       | Process Waits? | Description                           | Example Functions               | Use Case                     |
+| -------------------------- | -------------- | ------------------------------------- | ------------------------------- | ---------------------------- |
+| **Blocking I/O**           | Yes            | Process waits until I/O completes     | `read()`, `write()`             | Simple applications          |
+| **Non-blocking I/O**       | No             | Returns immediately if data not ready | `fcntl(fd, O_NONBLOCK)`         | Real-time or polling systems |
+| **I/O Multiplexing**       | Partial        | Waits for multiple I/O events         | `select()`, `poll()`, `epoll()` | Servers, event-driven apps   |
+| **Asynchronous I/O (AIO)** | No             | Kernel notifies after completion      | `aio_read()`, `aio_write()`     | High-performance systems     |
+
+```
+# 9. What are the I/O calls we are used in IPC Mechanisms? 
+
+
+In Inter-Process Communication (IPC), processes exchange data using various kernel-level mechanisms like pipes, FIFOs, message queues, shared memory, semaphores, and sockets.
+
+Each of these mechanisms internally relies on I/O system calls provided by the operating system.
+
+### 1. Pipes (Anonymous Pipes)
+
+Used for: Communication between related processes (usually parent ↔ child).
+
+Communication Type: Unidirectional (one process writes, another reads).
+
+| Function  | Purpose                                                                 |
+| --------- | ----------------------------------------------------------------------- |
+| `pipe()`  | Creates a pipe and returns two file descriptors `[read_end, write_end]` |
+| `read()`  | Reads data from the pipe (blocks if no data)                            |
+| `write()` | Writes data into the pipe                                               |
+| `close()` | Closes the unused end of the pipe                                       |
+
+
+### Example:
+```c
+int fd[2];
+pipe(fd);
+write(fd[1], "Hello", 5);
+read(fd[0], buffer, 5);
+```
+### 2. Named Pipes (FIFO)
+
+Used for: Communication between unrelated processes.
+
+Communication Type: Unidirectional or bidirectional.
+
+I/O Calls Used:
+
+| Function   | Purpose                                 |
+| ---------- | --------------------------------------- |
+| `mkfifo()` | Creates a named pipe (special file)     |
+| `open()`   | Opens the FIFO file for reading/writing |
+| `read()`   | Reads data from FIFO                    |
+| `write()`  | Writes data to FIFO                     |
+| `close()`  | Closes FIFO after use                   |
+
+
+### Example:
+```c
+mkfifo("myfifo", 0666);
+int fd = open("myfifo", O_WRONLY);
+write(fd, "Hi", 2);
+```
+### 3. Message Queues
+
+Used for: Exchange of messages between processes via kernel-managed queues.
+
+Communication Type: Bidirectional (can send/receive).
+
+I/O Calls Used:
+
+| Function   | Purpose                                          |
+| ---------- | ------------------------------------------------ |
+| `msgget()` | Creates or accesses a message queue              |
+| `msgsnd()` | Sends a message to the queue                     |
+| `msgrcv()` | Receives a message from the queue                |
+| `msgctl()` | Performs control operations (e.g., delete queue) |
+
+
+### Example:
+```c
+msgget(key, IPC_CREAT | 0666);
+msgsnd(msgid, &msg, sizeof(msg), 0);
+msgrcv(msgid, &msg, sizeof(msg), 0, 0);
+```
+### 4. Shared Memory
+
+Used for: Fastest way to share data between processes (no kernel copy needed).
+
+Needs synchronization (via semaphores) to prevent race conditions.
+
+I/O Calls Used:
+
+| Function   | Purpose                                                 |
+| ---------- | ------------------------------------------------------- |
+| `shmget()` | Creates a shared memory segment                         |
+| `shmat()`  | Attaches the shared memory to a process’s address space |
+| `shmdt()`  | Detaches the shared memory segment                      |
+| `shmctl()` | Controls or removes the shared memory segment           |
+
+
+### Example:
+```c
+int shmid = shmget(key, 1024, IPC_CREAT | 0666);
+char *data = (char*) shmat(shmid, NULL, 0);
+strcpy(data, "Shared message");
+shmdt(data);
+```
+### 5. Semaphores
+
+Used for: Synchronization, not data transfer.
+
+Helps coordinate access to shared resources.
+
+I/O Calls Used:
+
+| Function   | Purpose                                      |
+| ---------- | -------------------------------------------- |
+| `semget()` | Creates a semaphore set                      |
+| `semop()`  | Performs semaphore operations (wait, signal) |
+| `semctl()` | Controls or removes semaphore set            |
+
+
+### Example:
+```c
+semget(key, 1, IPC_CREAT | 0666);
+semop(semid, &operation, 1);
+```
+### 6. Signals
+
+Used for: Sending asynchronous notifications between processes.
+
+I/O Calls Used:
+
+| Function                   | Purpose                             |
+| -------------------------- | ----------------------------------- |
+| `kill()`                   | Sends a signal to a process         |
+| `signal()` / `sigaction()` | Defines how process handles signals |
+| `pause()`                  | Waits for a signal                  |
+| `alarm()`                  | Generates a signal after some time  |
+
+
+### Example:
+```c
+signal(SIGINT, handler);
+kill(pid, SIGINT);
+```
+### 7. Sockets
+
+Used for: Communication between processes across same or different machines (network-based IPC).
+
+Communication Type: Bidirectional (full-duplex).
+
+I/O Calls Used:
+
+| Function            | Purpose                              |
+| ------------------- | ------------------------------------ |
+| `socket()`          | Creates a socket                     |
+| `bind()`            | Assigns address to socket            |
+| `listen()`          | Waits for incoming connections       |
+| `accept()`          | Accepts a connection (blocking call) |
+| `connect()`         | Connects to a remote socket          |
+| `send()` / `recv()` | Send or receive data                 |
+| `close()`           | Closes the socket                    |
+
+
+### Example:
+```c
+int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+connect(sockfd, (struct sockaddr *)&server, sizeof(server));
+send(sockfd, "Hello", 5, 0);
+recv(sockfd, buffer, sizeof(buffer), 0);
+```
+
+
+### Summary Table
+
+| IPC Mechanism         | Common I/O System Calls                                                       | Communication Type       |
+| --------------------- | ----------------------------------------------------------------------------- | ------------------------ |
+| **Pipe**              | `pipe()`, `read()`, `write()`, `close()`                                      | One-way (unidirectional) |
+| **FIFO (Named Pipe)** | `mkfifo()`, `open()`, `read()`, `write()`, `close()`                          | One-way or two-way       |
+| **Message Queue**     | `msgget()`, `msgsnd()`, `msgrcv()`, `msgctl()`                                | Two-way                  |
+| **Shared Memory**     | `shmget()`, `shmat()`, `shmdt()`, `shmctl()`                                  | Two-way                  |
+| **Semaphore**         | `semget()`, `semop()`, `semctl()`                                             | Synchronization only     |
+| **Signal**            | `kill()`, `signal()`, `sigaction()`, `pause()`                                | One-way (asynchronous)   |
+| **Socket**            | `socket()`, `bind()`, `listen()`, `accept()`, `connect()`, `send()`, `recv()` | Two-way                  |
+
+
+
+# 10. What are the Blocking Calls used in IPC? 
+
+### Definition:
+Blocking calls in IPC are system calls that make a process wait until the requested communication or synchronization operation is completed.
+
+
+### Common Blocking Calls in IPC Mechanisms
+| IPC Mechanism       | Blocking Call | Description                                |
+| ------------------- | ------------- | ------------------------------------------ |
+| **Pipes / FIFOs**   | `read()`      | Waits until data is available to read      |
+|                     | `write()`     | Waits if pipe/FIFO buffer is full          |
+| **Message Queue**   | `msgrcv()`    | Waits until a message arrives in the queue |
+|                     | `msgsnd()`    | Waits if the queue is full                 |
+| **Shared Memory**   | `sem_wait()`  | Waits for access (synchronization)         |
+| **Semaphore**       | `sem_wait()`  | Blocks until the semaphore is available    |
+| **Sockets**         | `accept()`    | Waits for a client connection              |
+|                     | `recv()`      | Waits until data is received               |
+|                     | `send()`      | May block if send buffer is full           |
+| **Signals**         | `pause()`     | Waits until a signal is received           |
+| **Process Control** | `wait()`      | Blocks until a child process terminates    |
+
+
+
+# 11. What is meant by Named Pipes? 
+
+### Definition:
+A Named Pipe, also called a FIFO (First In, First Out), is an Inter-Process Communication (IPC) mechanism that allows two or more unrelated processes to communicate with each other by reading and writing through a special file in the filesystem.
+
+
+Key points
+
+| Feature               | Description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
+| **Type**              | IPC mechanism                                                            |
+| **Full Form**         | FIFO – First In, First Out                                               |
+| **Communication**     | Unidirectional (one process writes, another reads)                       |
+| **Between Processes** | Works for **unrelated** processes (unlike normal pipes)                  |
+| **Data Flow**         | The data written first is read first (FIFO order)                        |
+| **Exists as a File**  | Appears as a **special file** in the filesystem (created using `mkfifo`) |
+
+
+# 12. Where is the FIFO Object created?  
+
+```c
+A FIFO (Named Pipe) object is created in the file system (directory structure) as a special file.
+
+When you create a named pipe using the system call:
+
+mkfifo("myfifo", 0666);
+
+
+ A special file named “myfifo” is created in the current working directory (or the specified path).
+This file is not a regular file — it’s a special FIFO file recognized by the kernel.
+
+ Where exactly it exists
+
+It exists in the file system namespace, like /home/user/myfifo or /tmp/myfifo.
+
+It is managed by the kernel but represented as a file so that processes can open it using standard I/O calls (open(), read(), write()).
+```
+# 13. What is the call used to create a FIFO Object?  
+```c
+mkfifo("myfifo", 0666);
+```
+# 14. What are the Blocking Calls used in Named Pipes? 
+```c
+In Named Pipes (FIFOs), the main blocking system calls are:
+
+1. open()
+
+2. read()
+
+3. write()
+```
+# 15. Why read system calls acts as a blocking call? 
+
+```c
+1. read() blocks because it waits for data to become available before returning to the process.
+2. If no data is present, the process cannot proceed, so it is suspended (blocked) by the kernel until data arrives.
+
+When a process calls:
+
+int n = read(fd, buffer, size);
+
+
+The kernel checks if there’s data available in the file descriptor fd.
+
+If data is available → read() copies it to the buffer → returns immediately.
+
+If no data is available → read() blocks the process and puts it in the sleep state until another process writes data.
+```
+# 16. Difference between the Named Pipes and Pipes?  
+
+| Feature                 | Pipe (Anonymous Pipe)                                                                | Named Pipe (FIFO)                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Definition**          | A unidirectional communication channel between **related processes** (parent-child). | A special file in the filesystem used for communication between **unrelated processes**. |
+| **Name in File System** | No name in file system (anonymous).                                                  | Has a **name in the filesystem** (created using `mkfifo()`).                             |
+| **Communication**       | One-way (can be made two-way using two pipes).                                       | Usually one-way, but can be two-way using two FIFOs.                                     |
+| **Process Relation**    | Works only between **related processes**.                                            | Works between **unrelated processes**.                                                   |
+| **Lifetime**            | Exists **only while processes are running**.                                         | Exists **even if no process is using it**; persists in the filesystem until deleted.     |
+| **Creation**            | `pipe(int fd[2])` system call.                                                       | `mkfifo("filename", 0666)` system call.                                                  |
+| **Blocking Behavior**   | `read()` and `write()` are blocking if no data / buffer full.                        | Same — `open()`, `read()`, and `write()` can block.                                      |
+| **Use Case**            | Parent-child communication.                                                          | Communication between unrelated processes or long-lived communication channels.          |
+
+# 17. What is return value of read system call? 
+
+| Return Value | Meaning                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| **> 0**      | Number of **bytes actually read** and copied into the buffer. Can be **less than the requested size**. |
+| **0**        | **End-of-File (EOF)** reached — no more data to read.                                                  |
+| **-1**       | **Error occurred** — check `errno` for details.                                                        |
+
+
+# 18. What is meant by message queue?
+```c
+A message queue is a communication mechanism used in Inter-Process Communication (IPC) to allow processes to send and receive messages in an organized and asynchronous manner.
+
+. Separate system calls are used for accessint message queues as compared to pipes and named pipes
+
+
+1. It acts as a buffer (queue) maintained by the kernel.
+
+2. The queue stores messages sent by one process until another process retrieves them.
+
+3. Each message queue is identified by a unique key (identifier).
+
+4. Communication can happen between any two or more unrelated processes.
+```
+# 19. Why we use message queues?
+
+### Definition:
+
+A message queue is a method of interprocess communication (IPC) that allows processes to exchange data in the form of messages.
+It provides a queue (FIFO) structure maintained by the operating system kernel, where messages can be stored temporarily until the receiving process reads them.
+
+### Purpose:
+
+The main purpose of message queues is to enable asynchronous communication between processes.
+That means the sender and receiver processes do not need to run at the same time — one process can send a message and continue its execution, while another process can receive it later.
+
+### Features of Message Queues:
+
+   - Communication takes place through the kernel (not by direct memory sharing).
+
+   - Messages are stored in a queue and can be retrieved in the order they are sent (FIFO).
+ 
+   - Each message has a type, which allows selective receiving.
+
+   - Processes are decoupled, i.e., they do not need to know each other’s identity.
+
+   - Message queues provide synchronization between processes.
+
+   - Communication is asynchronous — the sender doesn’t have to wait for the receiver.
+     
+# 20. What is difference between Named Pipe and Message Queue?
+| **Feature**                   | **Named Pipe (FIFO)**                                                                                           | **Message Queue**                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Definition**                | A special file that allows unidirectional or bidirectional data flow between processes in a byte stream format. | A kernel-managed queue that allows processes to exchange structured messages.                                |
+| **Communication Type**        | Byte-oriented (stream-based).                                                                                   | Message-oriented (each message has a type and data).                                                         |
+| **Identification**            | Identified by a name in the file system (created using `mkfifo()` or `mknod()`).                                | Identified by a key (System V) or name (POSIX) created using `ftok()` or specified in `mq_open()`.           |
+| **Data Storage**              | Data flows continuously without message boundaries.                                                             | Messages are stored separately in the queue with boundaries.                                                 |
+| **Synchronization**           | Sender and receiver must coordinate; synchronous communication.                                                 | Asynchronous communication; sender and receiver work independently.                                          |
+| **Selective Receiving**       | Not possible — data is read in order.                                                                           | Possible — receiver can choose messages by type.                                                             |
+| **Persistence**               | Data is removed once read.                                                                                      | Messages remain in queue until explicitly received or queue is deleted.                                      |
+| **Communication Scope**       | Can be used between related or unrelated processes if accessible.                                               | Can be used between any processes having access to the queue key or name.                                    |
+| **Full Duplex Communication** | Requires two FIFOs for two-way communication.                                                                   | A single queue can support two-way communication using message types.                                        |
+| **Speed**                     | Faster (simple byte stream).                                                                                    | Slower (kernel-managed and structured).                                                                      |
+| **Complexity**                | Simple to implement.                                                                                            | More complex due to structured format and system calls.                                                      |
+| **System Calls**              | `mkfifo()`, `write()`, `read()`, `unlink()`.                                                                    | `msgget()`, `msgsnd()`, `msgrcv()`, `msgctl()` (or `mq_open()`, `mq_send()`, `mq_receive()`, `mq_unlink()`). |
+| **Use Cases**                 | Simple data streaming, producer-consumer models.                                                                | Asynchronous client-server communication, logging, and real-time systems.                                    |
+
+
+# 21. What is the system call used to create the message queue?
+### System call is  -  int msgget(key_t key, int msgflg);
+| **Parameter** | **Description**                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `key`         | A unique key value (usually generated using the `ftok()` function) used to identify the message queue.                |
+| `msgflg`      | Flags that control permissions and creation options (e.g., `IPC_CREAT`, `IPC_EXCL`, and permission bits like `0666`). |
+
+
+# 22. Where was the message queue created?
+
+The message queue is created and maintained by the operating system kernel — not in the user’s memory or file system.
+
+📍 Detailed Explanation:
+
+When a process calls the system call:
+### msgget(key, msgflg);
+
+the kernel checks whether a message queue with the specified key already exists.
+
+If it doesn’t exist and the flag IPC_CREAT is given,
+the kernel creates a new message queue in its internal IPC (Inter-Process Communication) table.
+
+### **23. What is meant by Shared Memory?**
+Shared Memory is an **Interprocess Communication (IPC)** mechanism that allows **two or more processes to access the same portion of memory**. 
+This memory segment is created by one process and can be attached to other processes, allowing them to **read and write data directly** to the same memory area. 
+It provides the **fastest method of data exchange** between processes because data does not need to be copied through the kernel.
+
+---
+
+### **24. Why we use Shared Memory?**
+We use **Shared Memory** to achieve **high-speed communication** between processes. 
+It avoids the overhead of message passing since all processes can directly access the same memory region. 
+It is mostly used in **real-time and performance-critical applications**.
+
+**Advantages:**
+- Very fast communication (no kernel data copying).
+- Suitable for large data transfers.
+- Useful for data sharing between related or unrelated processes.
+
+---
+
+### **25. Difference between Shared Memory and Message Queues**
+
+| **Feature** | **Shared Memory** | **Message Queue** |
+|--------------|------------------|-------------------|
+| **Definition** | Allows multiple processes to access a common memory segment. | Allows processes to communicate using structured messages stored in a queue. |
+| **Communication Type** | Memory-based (direct access). | Message-based (kernel managed). |
+| **Speed** | Very fast (direct access). | Slower (involves kernel intervention). |
+| **Synchronization** | Requires additional mechanisms (like semaphores) to avoid conflicts. | Synchronization handled internally by the kernel. |
+| **Data Transfer** | Suitable for large data. | Suitable for small data or control messages. |
+| **Persistence** | Exists until removed using `shmctl()`. | Exists until deleted using `msgctl()`. |
+| **System Calls** | `shmget()`, `shmat()`, `shmdt()`, `shmctl()`. | `msgget()`, `msgsnd()`, `msgrcv()`, `msgctl()`. |
+
+---
+
+### **26. What is the use of stat command?**
+The **`stat`** command in Linux is used to **display detailed information about a file or directory**, such as:  
+- File type and permissions  
+- Inode number  
+- Ownership (user and group)  
+- Size in bytes  
+- Last access, modification, and change times  
+
+**Example:**
+```bash
+stat filename.txt
+```
+**Output shows:** File size, permissions, user ID, group ID, access times, etc.
+
+---
+
+### **27. What is the use of semctl command?**
+The **`semctl`** system call is used to **control and manage semaphore sets** in System V IPC.  
+It can perform various operations such as:
+- **Get or set semaphore values**
+- **Retrieve semaphore information**
+- **Remove semaphore set**
+
+**Syntax:**
+```c
+int semctl(int semid, int semnum, int cmd, ...);
+```
+**Common Commands:**
+- `IPC_RMID` → Remove semaphore set  
+- `GETVAL` → Get current value of a semaphore  
+- `SETVAL` → Set value of a semaphore  
+
+---
+
+### **28. How do we destroy the shared memory object?**
+A shared memory segment is destroyed using the **`shmctl()`** system call with the **`IPC_RMID`** command.
+
+**Syntax:**
+```c
+shmctl(shmid, IPC_RMID, NULL);
+```
+This call removes the shared memory segment identified by `shmid` from the system.
+
+---
+
+### **29. What is meant by Semaphores?**
+A **Semaphore** is a synchronization mechanism used to **control access to a shared resource** by multiple processes.  
+It is an integer variable that is modified using two atomic operations:
+- **Wait (P or down)** → Decreases semaphore value. If value < 0, the process waits.  
+- **Signal (V or up)** → Increases semaphore value. If processes are waiting, one is allowed to proceed.
+
+**Types of Semaphores:**
+1. **Binary Semaphore:** Takes values 0 or 1 (used for mutual exclusion).  
+2. **Counting Semaphore:** Can take any non-negative integer value (used for resource counting).
+
+**Usage:** Prevents race conditions, ensures mutual exclusion, and synchronizes process execution.
+
+---
+
+### **30. Why we use Semaphores?**
+Semaphores are used to **control access to shared resources** and to **synchronize multiple processes or threads**.  
+They prevent race conditions and ensure that only one process accesses a critical section at a time.
+
+**Uses:**
+- Ensuring **mutual exclusion**.
+- **Synchronizing** producer–consumer or reader–writer processes.
+- Controlling **resource allocation** among multiple processes.
+
+---
+
+### **31. What is meant by Synchronization?**
+**Synchronization** is the process of **coordinating the execution of multiple processes or threads** so that they operate in a controlled manner without conflicts.  
+It ensures that **shared resources are accessed by only one process at a time**, preventing inconsistencies and race conditions.
+
+**Example:**  
+If two processes try to update the same variable simultaneously, synchronization ensures that one completes before the other starts.
+
+---
+
+### **32. What is meant by Asynchronization?**
+**Asynchronization** means that processes or threads **execute independently without waiting for each other**.  
+In asynchronous execution, one process does not need to finish before another begins — they can work concurrently.
+
+**Example:**  
+In message queues, the sender can send a message and continue execution without waiting for the receiver.
+
+---
+
+### **33. Why we use Mutex Locks?**
+A **Mutex (Mutual Exclusion) Lock** is used to **protect critical sections** of code so that only **one thread or process** can execute them at a time.  
+It helps prevent **race conditions** and ensures **data consistency**.
+
+**Usage:**
+- Lock the critical section before accessing shared data.
+- Unlock after completing the operation.
+
+---
+
+### **34. What is the difference between Mutex Locks and Semaphores?**
+
+| **Feature** | **Mutex Lock** | **Semaphore** |
+|--------------|----------------|----------------|
+| **Definition** | A locking mechanism that allows only one thread to access a resource at a time. | A signaling mechanism that controls access to resources using counters. |
+| **Type** | Binary (0 or 1). | Binary or Counting. |
+| **Ownership** | Only the thread that locked it can unlock it. | Can be signaled by any process. |
+| **Usage** | Used for mutual exclusion. | Used for synchronization and resource counting. |
+| **Implementation** | Simpler and lighter. | More complex (managed by kernel). |
+| **Blocking Behavior** | Thread blocks if mutex is already locked. | Process may wait if semaphore count is zero. |
+
+---
+
+### **35. What is meant by Race Condition?**
+A **Race Condition** occurs when **two or more processes access shared data simultaneously**, and the **final result depends on the order of execution**.  
+It leads to **inconsistent or incorrect results**.
+
+**Example:**  
+If two processes increment the same variable at the same time without synchronization, the final value may be wrong.
+
+---
+
+### **36. What is meant by Deadlock?**
+A **Deadlock** is a situation in which **two or more processes are waiting for resources held by each other**, causing all of them to **wait forever**.
+
+**Necessary Conditions for Deadlock:**
+1. **Mutual Exclusion** – Only one process can use a resource at a time.  
+2. **Hold and Wait** – A process is holding one resource and waiting for another.  
+3. **No Preemption** – A resource cannot be forcibly taken away.  
+4. **Circular Wait** – A cycle of processes each waiting for the next.
+
+---
+
+### **37. What is meant by Critical Section?**
+A **Critical Section** is a part of a program where **shared resources (like variables or files)** are accessed.  
+Only one process or thread should execute in the critical section at a time to **prevent race conditions**.
+
+**Example:**  
+Updating a shared counter variable inside two processes must be done in a critical section protected by a semaphore or mutex.
+
+---
+
+### **38. What is the difference between System V and POSIX?**
+
+| **Feature** | **System V IPC** | **POSIX IPC** |
+|--------------|------------------|----------------|
+| **Introduction** | Older System V standard (AT&T UNIX). | Newer IEEE POSIX standard. |
+| **API Type** | System calls (`msgget`, `shmget`, `semget`). | Library functions (`mq_open`, `shm_open`, `sem_open`). |
+| **Identification** | Uses keys generated by `ftok()`. | Uses string names (e.g., "/myqueue"). |
+| **Communication** | Works between processes only. | Can work between processes and threads. |
+| **Ease of Use** | More complex and low-level. | Simpler and more user-friendly. |
+| **Resource Removal** | Removed using `msgctl`, `shmctl`, `semctl`. | Removed using `mq_unlink`, `shm_unlink`, `sem_unlink`. |
+| **Standardization** | Proprietary to UNIX systems. | Portable across UNIX-like systems. |
+
+---
+
+### **39. Steps to Create and Use a Named Pipe (FIFO) for IPC**
+
+1. **Create the FIFO** using `mkfifo()` or the shell command `mknod`.
+   ```c
+   mkfifo("fifo1", 0666);
+   ```
+2. **Open the FIFO** for reading or writing using `open()`.  
+3. **Write data** to the FIFO using `write()`.  
+4. **Read data** from the FIFO using `read()`.  
+5. **Close the FIFO** using `close()`.  
+6. **Remove FIFO** (optional) using `unlink()` when no longer needed.
+
+**Example:**
+```c
+mkfifo("fifo1", 0666);
+int fd = open("fifo1", O_WRONLY);
+write(fd, "Hello", 6);
+close(fd);
+```
+
+---
+
+### **40. Steps to Create and Use a Pipe for IPC**
+
+1. **Create the pipe** using the `pipe()` system call.
+   ```c
+   int fd[2];
+   pipe(fd);
+   ```
+   - `fd[0]` → read end  
+   - `fd[1]` → write end  
+
+2. **Fork the process** using `fork()`.  
+   - Parent writes data using `write(fd[1], ...)`  
+   - Child reads data using `read(fd[0], ...)`  
+
+3. **Close unused ends** after communication.  
+4. **Terminate processes** when communication completes.
+
+**Example:**
+```c
+int fd[2];
+pipe(fd);
+if (fork() == 0) {
+    close(fd[1]);
+    char msg[50];
+    read(fd[0], msg, sizeof(msg));
+    printf("Child received: %s", msg);
+} else {
+    close(fd[0]);
+    write(fd[1], "Hello Child", 12);
+}
+```
+
+---
+# 41. Implement a program that uses pipes for communication between a parent and child process. Show how data can be passed between processes using pipes.
+
+```c
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<string.h>
+int main(){
+        int fds[2];
+
+        if(pipe(fds)==-1){
+                perror("pipe");
+                exit(EXIT_FAILURE);
+        }
+
+        int pid=fork();
+
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+
+        if(pid==0){
+                close(fds[1]);
+
+                char str[1024];
+                int n=read(fds[0],str,sizeof(str));
+                if(n>0){
+                        str[n]='\0';
+                        printf("Child: Received: %s\n",str);
+                }
+
+                close(fds[0]);
+        }
+        else {
+                close(fds[0]);
+
+                char str[1024];
+                printf("Parent: Enter msg: ");
+                fgets(str,sizeof(str),stdin);
+                str[strlen(str)-1]='\0';
+
+                write(fds[1],str,strlen(str));
+
+                close(fds[1]);
+                wait(NULL);
+        }
+}
+
+```
+
+# 42. Create a program where two processes communicate synchronously using pipes. Ensure that one process waits for the other to finish before proceeding.
+
+```c
+#include<stdio.h>
+#include<unistd.h>
+#include<errno.h>
+#include<string.h>
+
+int main(){
+        int p2c[2],c2p[2];
+
+        if(pipe(p2c)==-1 || pipe(c2p)==-1){
+                printf("Error at pipe: %s\n",strerror(errno));
+                return 1;
+        }
+
+        int pid=fork();
+
+        if(pid<0){
+                printf("Error at fork: %s\n",strerror(errno));
+                return 1;
+        }
+        else if(pid>0){
+                close(p2c[0]);
+                close(c2p[1]);
+                char write_data[1024];
+                printf("This is parent: Enter msg to send child: ");
+                fgets(write_data,sizeof(write_data),stdin);
+                write_data[strlen(write_data)-1]='\0';
+                write(p2c[1],write_data,strlen(write_data));
+
+                char receive[1024];
+                int n=read(c2p[0],receive,sizeof(receive));
+                receive[n]='\0';
+                printf("Parent received from child: %s\n",receive);
+                close(p2c[1]);
+                close(c2p[0]);
+        }
+        else if(pid==0){
+                close(p2c[1]);
+                close(c2p[0]);
+
+                char read_data[1024];
+                int k=read(p2c[0],read_data,sizeof(read_data));
+                read_data[k]='\0';
+                printf("Child received from parent: %s\n",read_data);
+
+                char reply[1024];
+                printf("This is child enter msg to send parent: ");
+                fgets(reply,sizeof(reply),stdin);
+                reply[strlen(reply)-1]='\0';
+                write(c2p[1],reply,strlen(reply));
+
+                close(p2c[0]);
+                close(c2p[1]);
+
+                wait(NULL);
+        }
+}
+
+```
+
+# 43. Implement a program that uses Named pipes for communication between two processes.
+
+### Between two processes
+```c
+
+#include<stdlib.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<string.h>
+#include<sys/stat.h>
+#include<sys/wait.h>
+int main(){
+        char *file="myfifo42";
+
+        if(access(file,F_OK)==-1){
+                if(mkfifo(file,0640)==-1){
+                        perror("mkfifo");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        int pid=fork();
+
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+
+        if(pid==0){
+                int fd=open(file,O_RDONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                char str[1024];
+                int n=read(fd,str,sizeof(str)-1);
+                str[n]='\0';
+
+                printf("Child: Read from fifo: %s\n",str);
+
+                close(fd);
+        }
+        else {
+                int fd=open(file,O_WRONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                char str[1024];
+                printf("Parent: Enter msg into fifo: ");
+                fgets(str,sizeof(str),stdin);
+                str[strlen(str)-1]='\0';
+
+                write(fd,str,strlen(str));
+
+                close(fd);
+                wait(NULL);
+        }
+
+        unlink(file);
+}
+
+```
+### Between Unrelated Process   server.c
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<errno.h>
+#include<string.h>
+#include<sys/stat.h>
+int main(){
+        char buffer[1024];
+        char fifo[20];
+        printf("Enter FIFO name: ");
+        scanf("%s",fifo);
+        if(mkfifo(fifo,0666)==-1){
+                if(errno != EEXIST){
+                        perror("mkfifo");
+                        return 1;
+                }
+        }
+
+        printf("Server started. Waiting for messages...\n");
+
+        while(1){
+                int fd=open(fifo,O_RDONLY);
+                if(fd==-1){
+                        perror("open");
+                        return 1;
+                }
+
+                int n=read(fd,buffer,sizeof(buffer)-1);
+
+                if(n>0){
+                        buffer[n]='\0';
+                        printf("server Received: %s\n",buffer);
+                }
+                close(fd);
+        }
+}
+
+```
+### Client.c
+
+```c
+#include<string.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<errno.h>
+#include<sys/stat.h>
+
+int main(){
+        char message[1024];
+        char file[20];
+        printf("Enter FIFO name: ");
+        scanf("%s",file);
+        getchar();
+        if(access(file,F_OK)==-1){
+                printf("FIFO  not found, creating one...\n");
+                if(mkfifo(file,0666)==-1){
+                        perror("mkfifo");
+                        return 1;
+                }
+        }
+
+        int fd=open(file,O_WRONLY);
+        if(fd==-1){
+                perror("open");
+                return 1;
+        }
+
+        printf("Enter message to send to server: ");
+        fgets(message,sizeof(message),stdin);
+        message[strlen(message)-1]='\0';
+        write(fd,message,strlen(message));
+        printf("Client sent: %s\n",message);
+
+        close(fd);
+}
+
+```
+# 44. Write a C program to create a message queue using the msgget system call. Ensure that the program checks for errors during the creation process.
+
+```c
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<sys/msg.h>
+
+int main(){
+        int key=ftok("progfile",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,IPC_CREAT|0640);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Message queue created successfully.\n");
+        printf("KEY : %d\n",key);
+}
+
+```
+# 45. Develop two separate C programs, one for sending messages and the other for receiving messages through a created message queue.
+
+### Server.c(Sender)
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+#include<string.h>
+struct msg_buffer{
+        long mtype;
+        char txmsg[100];
+};
+int main(){
+        struct msg_buffer message;
+        int key=ftok("msg45",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+
+        int msgid=msgget(key,IPC_CREAT|0666);
+        if(msgid==-1){
+                perror("megget");
+                exit(EXIT_FAILURE);
+        }
+
+        message.mtype = 1;
+        printf("Enter string to send: ");
+        fgets(message.txmsg,sizeof(message.txmsg),stdin);
+        //message.txmsg[strlen(message.txmsg)-1]='\0';
+        int len=strlen(message.txmsg);
+        if(len>0 && message.txmsg[len-1]=='\n'){
+                message.txmsg[len-1]='\0';
+        }
+
+        if(msgsnd(msgid,&message,sizeof(message.txmsg),0)==-1){
+                perror("msgsnd");
+                exit(EXIT_FAILURE);
+        }
+        printf("Message sent successfully.\n");
+
+
+}
+
+```
+
+### Client.c(Receiver)
+
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<sys/types.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+struct msg_buffer{
+        long mtype;
+        char txmsg[100];
+};
+int main(){
+        struct msg_buffer message;
+        int key=ftok("msg45",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,IPC_CREAT|0666);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        if(msgrcv(msgid,&message,sizeof(message.txmsg),1,0)==-1){
+                perror("msgrcv");
+                exit(EXIT_FAILURE);
+        }
+        printf("Received message; %s\n",message.txmsg);
+
+        if(msgctl(msgid,IPC_RMID,NULL)==-1){
+                perror("msgctl");
+                exit(EXIT_FAILURE);
+        }
+}
+
+
+```
+# 46. Create a program to remove an existing message queue using the msgctl system call. Ensure that the program prompts the user for confirmation before deleting the message queue.
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+struct msg_buffer{
+        long mtype;
+        char msg[100];
+};
+int main(){
+        int key=ftok("msg46",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,0666|IPC_CREAT);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        char choice;
+        printf("Message queue found: key = %d and msgid = %d\n",key,msgid);
+        printf("Do you want really remove msg queue (y/n)? :");
+        scanf("%c",&choice);
+
+        if(choice == 'y' || choice == 'Y'){
+                if(msgctl(msgid,IPC_RMID,0)==-1){
+                        perror("msgctl");
+                        exit(EXIT_FAILURE);
+                }
+                else {
+                        printf("Message queue removed successfully.\n");
+                }
+        }
+        else {
+                printf("Message queue is not removed.\n");
+        }
+}
+
+```
+# 47. Design a multithreaded program where threads communicate through named pipes.
+```c
+
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<pthread.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<string.h>
+#include<sys/stat.h>
+
+#define file "myfifo47"
+void *thread_read(void *arg){
+
+        int fd;
+        char str[1024];
+        while(1){
+                fd=open(file,O_RDONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                int n=read(fd,str,sizeof(str)-1);
+                if(n>0){
+                        str[n]='\0';
+                        printf("Thread_read: Reads from fifo: %s\n",str);
+                        if(strcmp(str,"exit")==0){
+                                printf("Thread_read shutting down.\n");
+                                close(fd);
+                                break;
+                        }
+
+                }
+                close(fd);
+        }
+        pthread_exit(NULL);
+}
+
+void *thread_write(void *arg){
+        int fd;
+        char buffer[1024];
+
+        while(1){
+                fd=open(file,O_WRONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                printf("Thread write: Enter msg: ");
+                fgets(buffer,sizeof(buffer),stdin);
+                buffer[strlen(buffer)-1]='\0';
+
+                write(fd,buffer,strlen(buffer));
+
+                if(strcmp(buffer,"exit")==0){
+                        printf("thread_write shutting down.\n");
+                        close(fd);
+                        break;
+                }
+                close(fd);
+        }
+        pthread_exit(NULL);
+}
+int main(){
+        //char *file="myfifo47";
+        if(access(file,F_OK)==-1){
+                if(mkfifo(file,0640)==-1){
+                        perror("mkfifo");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        pthread_t reader,writer;
+
+        if(pthread_create(&reader,NULL,thread_read,NULL)==-1){
+                perror("Thread1");
+                exit(EXIT_FAILURE);
+        }
+        sleep(1);
+
+        if(pthread_create(&writer,NULL,thread_write,NULL)==-1){
+                perror("Thread2");
+                exit(EXIT_FAILURE);
+        }
+
+        pthread_join(reader,NULL);
+        pthread_join(writer,NULL);
+
+        unlink(file);
+}
+
+```
+# 48. Write a C program where two processes communicate using message queues. Implement sending and receiving messages between the processes using msgget, msgsnd, and msgrcv.
+### Sender
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+#include<string.h>
+struct msg_buffer{
+        long mtype;
+        char txmsg[100];
+};
+int main(){
+        struct msg_buffer message;
+        int key=ftok("msg45",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+
+        int msgid=msgget(key,IPC_CREAT|0666);
+        if(msgid==-1){
+                perror("megget");
+                exit(EXIT_FAILURE);
+        }
+
+        message.mtype = 1;
+        printf("Enter string to send: ");
+        fgets(message.txmsg,sizeof(message.txmsg),stdin);
+        //message.txmsg[strlen(message.txmsg)-1]='\0';
+        int len=strlen(message.txmsg);
+        if(len>0 && message.txmsg[len-1]=='\n'){
+                message.txmsg[len-1]='\0';
+        }
+
+        if(msgsnd(msgid,&message,sizeof(message.txmsg),0)==-1){
+                perror("msgsnd");
+                exit(EXIT_FAILURE);
+        }
+        printf("Message sent successfully.\n");
+
+
+}
+```
+
+### Reciever
+
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<sys/types.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+struct msg_buffer{
+        long mtype;
+        char txmsg[100];
+};
+int main(){
+        struct msg_buffer message;
+        int key=ftok("msg45",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,IPC_CREAT|0666);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        if(msgrcv(msgid,&message,sizeof(message.txmsg),1,0)==-1){
+                perror("msgrcv");
+                exit(EXIT_FAILURE);
+        }
+        printf("Received message; %s\n",message.txmsg);
+
+        if(msgctl(msgid,IPC_RMID,NULL)==-1){
+                perror("msgctl");
+                exit(EXIT_FAILURE);
+        }
+}
+
+
+```
+
+# 49. Implement a program where two processes communicate synchronously using message queues. Ensure that one process waits for the other to finish before proceeding.
+
+```c
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+#include<unistd.h>
+#include<string.h>
+struct msg_buffer{
+        long mtype;
+        char msg[100];
+};
+int main(){
+        int key=ftok("msg49",65);
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid= msgget(key,0666|IPC_CREAT);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        int pid=fork();
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+
+        if(pid>0){
+                struct msg_buffer message;
+                message.mtype=1;
+
+                printf("Parent: Enetr msg to send: ");
+                fgets(message.msg,sizeof(message.msg),stdin);
+                message.msg[strlen(message.msg)-1]='\0';
+
+                if(msgsnd(msgid,&message,sizeof(message.msg),0)==-1){
+                        perror("msgsnd");
+                        exit(EXIT_FAILURE);
+                }
+                printf("Message send successfully to child.\n");
+
+                if(msgrcv(msgid,&message,sizeof(message.msg),2,0)==-1){
+                        perror("msgrcv");
+                        exit(EXIT_FAILURE);
+                }
+                printf("Parent: %s\n",message.msg);
+
+                if(msgctl(msgid,IPC_RMID,0)==-1){
+                        perror("msgctl");
+                        exit(EXIT_FAILURE);
+                }
+
+
+        }
+
+        else {
+                struct msg_buffer message;
+
+                if(msgrcv(msgid,&message,sizeof(message.msg),1,0)==-1){
+                        perror("msgrcv");
+                        exit(EXIT_FAILURE);
+                }
+                printf("Child: Received message from parent: %s\n",message.msg);
+
+                message.mtype=2;
+
+                strcpy(message.msg,"Child received your message.");
+                sleep(2);
+                if(msgsnd(msgid,&message,sizeof(message.msg),0)==-1){
+                        perror("msgsnd");
+                        exit(EXIT_FAILURE);
+                }
+                printf("Child: Reply sent to parent.\n");
+        }
+}
+
+```
+# 50. Design a program that uses a message queue for synchronization between multiple processes.
+### Sender
+```c
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+
+struct msg_buffer{
+        long mtype;
+        char msg[100];
+};
+
+int main(){
+        int key=ftok("msg50",65);
+        struct msg_buffer message;
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,0666|IPC_CREAT);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+        message.mtype=1;
+        printf("Enter msg to send: ");
+        fgets(message.msg,sizeof(message.msg),stdin);
+        message.msg[strlen(message.msg)-1]='\0';
+
+        if(msgsnd(msgid,&message,sizeof(message.msg),0)==-1){
+                perror("msgsnd");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Message sent successfully.\n");
+}
+
+```
+
+### Receiver1
+```c
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+
+struct msg_buffer{
+        long mtype;
+        char msg[100];
+};
+
+int main(){
+        int key=ftok("msg50",65);
+        struct msg_buffer message;
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,0666|IPC_CREAT);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+
+        if(msgrcv(msgid,&message,sizeof(message.msg),1,0)==-1){
+                perror("msgrcv");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Received msg : %s\n",message.msg);
+
+        message.mtype=2;
+
+        if(msgsnd(msgid,&message,sizeof(message.msg),0)==-1){
+                perror("msgsnd");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Msg send successfully to receiver2.\n");
+
+}
+
+```
+
+### Receiver 2
+```c
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<sys/msg.h>
+#include<sys/ipc.h>
+
+struct msg_buffer{
+        long mtype;
+        char msg[100];
+};
+
+int main(){
+        int key=ftok("msg50",65);
+        struct msg_buffer message;
+        if(key==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        int msgid=msgget(key,0666|IPC_CREAT);
+        if(msgid==-1){
+                perror("msgget");
+                exit(EXIT_FAILURE);
+        }
+        if(msgrcv(msgid,&message,sizeof(message.msg),2,0)==-1){
+                perror("msgrcv");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Receiver2: Received msg: %s\n",message.msg);
+}
+
+```
+
+# 51. Write a C program that initializes a shared memory segment using shmget.
+
+```c
+#include<stdio.h>
+#include<sys/shm.h>
+#include<sys/types.h>
+#include<sys/ipc.h>
+#include<stdlib.h>
+int main(){
+        int key,shmid,size=512;
+
+        key=ftok("p51shmid",65);
+        if(key ==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        shmid = shmget(key,size,IPC_CREAT|0666);
+        if(shmid==-1){
+                perror("shmget");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Shared Memory segment is created successfully.\n");
+        printf("Key = %d\n",key);
+        printf("Shared Memory ID: %d\n",shmid);
+        printf("Size = %d\n",size);
+}
+
+
+```
+# 52. Develop a program that attaches to a previously created shared memory segment using shmat and detaches using shmdt.
+```c
+#include<stdio.h>
+#include<string.h>
+#include<sys/shm.h>
+#include<sys/types.h>
+#include<sys/ipc.h>
+#include<stdlib.h>
+int main(){
+        int key,shmid,size=512;
+
+        key=ftok("p52shmid",65);
+        if(key ==-1){
+                perror("ftok");
+                exit(EXIT_FAILURE);
+        }
+
+        shmid = shmget(key,size,IPC_CREAT|0666);
+        if(shmid==-1){
+                perror("shmget");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Shared Memory segment is created successfully.\n");
+        printf("Key = %d\n",key);
+        printf("Shared Memory ID: %d\n",shmid);
+        printf("Size = %d\n",size);
+
+        char *str=(char *)shmat(shmid,NULL,0);
+
+        if(str==(char *)-1){
+                perror("shmat");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Shared memory attached at address: %p\n",str);
+
+        printf("Writing msg to shared memory.\n");
+        char ch[100];
+        printf("Enter msg: ");
+        fgets(ch,sizeof(ch),stdin);
+        ch[strlen(ch)-1]='\0';
+
+        strcpy(str,ch);
+
+        printf("Message written: %s\n",str);
+
+        if(shmdt(str)==-1){
+                perror("shmdt");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Shared memory deatached successfully.\n");
+
+
+        if(shmctl(shmid,IPC_RMID,0)==-1){
+                perror("shmctl");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Shared memory destroyed successfully.\n");
+
+}
+
+```
+# 53. Create a program that forks multiple processes, and each process communicates using shared memory.
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/ipc.h>
+#include<sys/shm.h>
+#include<string.h>
+#include<unistd.h>
+#include<sys/wait.h>
+int main(){
+        int key,shmid,SIZE;
+
+        key=ftok("p53shmid",65);
+        if(key==-1){
+                perror("ftok:");
+                exit(EXIT_FAILURE);
+        }
+
+        printf("Enter size: ");
+        scanf("%d",&SIZE);
+
+        shmid = shmget(key,SIZE,IPC_CREAT|0666);
+        if(shmid==-1){
+                perror("shmget");
+                exit(EXIT_FAILURE);
+        }
+
+        char *str=(char *)shmat(shmid,NULL,0);
+        if(str==(char *)-1){
+                perror("shmat");
+                exit(EXIT_FAILURE);
+        }
+
+        memset(str,0,SIZE);
+
+        for(int i=1;i<=3;i++){
+                int pid=fork();
+
+                if(pid<0){
+                        perror("fork");
+                        exit(EXIT_FAILURE);
+                }
+                if(pid==0){
+                        char msg[100];
+
+                        sprintf(msg,"Messsage write to shared memory by child process: %d (PID = %d)\n",i,getpid());
+                        strcat(str,msg);
+                        printf("Child %d wrote msg into shared memory.\n",i);
+
+                        shmdt(str);
+                        exit(0);
+                }
+        }
+        for(int i=1;i<=3;i++){
+                wait(NULL);
+        }
+
+        printf("All child process finished.\n");
+        printf("Data present in shared memory.\n");
+        printf("%s",str);
+
+        if(shmdt(str)==-1){
+                perror("shmdt");
+                exit(EXIT_FAILURE);
+        }
+
+
+        if(shmctl(shmid,IPC_RMID,0)==-1){
+                perror("shmctl");
+                exit(EXIT_FAILURE);
+        }
+}
+
+
+```
+# 54. Write a program that dynamically creates shared memory segments based on user input.
+```c
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/ipc.h>
+#include<sys/shm.h>
+
+int main(){
+
+        int n;
+        printf("Enter no of shared memories: ");
+        scanf("%d",&n);
+
+        if(n<=0){
+                printf("Invalid memory segments.\n");
+                exit(EXIT_FAILURE);
+        }
+        int shmid[n],SIZE[n];
+        for(int i=0;i<n;i++){
+                printf("Enter the size of the %d shared memory segment: ",i+1);
+                scanf("%d",&SIZE[i]);
+                getchar();
+                int key=ftok("p54shmid",65+i);
+                if(key==-1){
+                        perror("ftok");
+                        exit(EXIT_FAILURE);
+                }
+
+                if((shmid[i]=shmget(key,SIZE[i],IPC_CREAT|0666))==-1){
+                        perror("shmget");
+                        exit(EXIT_FAILURE);
+                }
+
+                printf("Shared Memory segment %d created successfully.\n",i+1);
+                printf("Key = %d\n",key);
+                printf("ID = %d\n",shmid[i]);
+                printf("Size = %d\n",SIZE[i]);
+
+        }
+
+        printf("All shared memory segments created successfully.\n");
+
+        char choice;
+        printf("Do you want to destroy all the shared memory segments. (y/n): ");
+        scanf("%c",&choice);
+        getchar();
+
+        if(choice =='y' || choice == 'Y'){
+                for(int i=0;i<n;i++){
+                        if(shmctl(shmid[i],IPC_RMID,0)==-1){
+                                perror("shmctl");
+                                //exit(EXIT_FAILURE);
+                        }
+                        else {
+                                printf("Segment %d (ID = %d) is destroyed successfully.\n",i+1,shmid[i]);
+                        }
+                }
+
+        }
+        else {
+                printf("Shared memory segments still avilable in the system.\n");
+        }
+}
+
+```
+# 61. Create a multithreaded program where threads synchronize using semaphore sets.
+```c
+
+#include<stdio.h>
+#include<unistd.h>
+#include<semaphore.h>
+#include<stdlib.h>
+#include<pthread.h>
+#define Threads 5
+int glob;
+sem_t sem;
+
+
+void *threadfun(void *arg){
+        int n=*(int *)arg;
+
+        printf("Thread %d is waiting to enter critical section: glob= %d........\n",n,glob);
+
+        sem_wait(&sem);
+        glob++;
+        printf("Thread %d is entered into critical section: glob= %d........\n",n,glob);
+        sleep(1);
+        sem_post(&sem);
+
+        return NULL;
+}
+
+int main(){
+        pthread_t t[Threads];
+        int ids[Threads];
+
+        sem_init(&sem,0,1);
+
+        for(int i=0;i<Threads;i++){
+                ids[i]=i+1;
+                pthread_create(&t[i],NULL,threadfun,&ids[i]);
+        }
+
+        for(int i=0;i<Threads;i++){
+                pthread_join(t[i],NULL);
+        }
+
+        sem_destroy(&sem);
+
+        printf("After completion of all threads execution: glob= %d....\n",glob);
+}
+
+```
+
+# 65. Write a program where multiple processes compete for access to a critical section using semaphores to ensure mutual exclusion.
+```c
+#include<stdio.h>
+#include<semaphore.h>
+#include<sys/wait.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<fcntl.h>
+int main(){
+        sem_t *sem;
+        sem=sem_open("mysem",O_CREAT | O_EXCL,0640,1);
+        if(sem == SEM_FAILED){
+                perror("sem_open");
+                exit(EXIT_FAILURE);
+        }
+        printf("Semaphores Created Successfully.\n");
+
+        for(int i=0;i<3;i++){
+                int pid=fork();
+                if(pid<0){
+                        perror("fork");
+                        exit(EXIT_FAILURE);
+                }
+                else if(pid==0){
+                        printf("Child %d waiting to enter critical section....\n",getpid());
+                        sem_wait(sem);
+                        printf("Child %d entered critical section.....\n",getpid());
+                        sleep(2);
+                        printf("Child %d leaving critical section.......\n",getpid());
+                        sem_post(sem);
+                        exit(0);
+                }
+
+        }
+        printf("Parent %d waiting to enter critical section....\n",getpid());
+
+        sem_wait(sem);
+        printf("Parent %d entered critical section...\n",getpid());
+        sleep(2);
+        printf("Parent %d leving critical section.......\n",getpid());
+        sem_post(sem);
+
+        for(int i=0;i<3;i++){
+                wait(NULL);
+        }
+
+        sem_close(sem);
+        sem_unlink("mysem");
+
+        printf("All process finished. semaphore removed.\n");
+}
+
+```
+# 66.Write a C program to create a pipe and pass an array of integers from the parentprocess to the child process through the pipe.
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+int main(){
+        int fds[2];
+
+        if(pipe(fds)==-1){
+                perror("pipe");
+                exit(EXIT_FAILURE);
+        }
+
+        int pid=fork();
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+        else if(pid > 0){
+                close(fds[0]);
+                write(1,"This is Parent process.\n",sizeof("This is Parent process.\n"));
+                int n;
+                printf("Enter array size: ");
+                scanf("%d",&n);
+
+                int a[n];
+                printf("Enter array elements: ");
+                for(int i=0;i<n;i++){
+                        scanf("%d",&a[i]);
+                }
+
+                write(fds[1],&n,sizeof(int));
+                write(fds[1],a,sizeof(a));
+
+                close(fds[1]);
+        }
+        else if(pid==0){
+                close(fds[1]);
+
+                int n;
+                read(fds[0],&n,sizeof(int));
+
+                int arr[n];
+                read(fds[0],arr,sizeof(arr));
+
+                printf("Child process Received from Parent: ");
+
+                for(int i=0;i<n;i++){
+                        printf("%d ",arr[i]);
+
+                }
+                printf("\n");
+
+                close(fds[0]);
+        }
+}
+
+```
+# 67. Implement a program where multiple child processes are created, and each child process communicates with the parent process using pipes.
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<string.h>
+#include<sys/wait.h>
+int main(){
+        int k;
+        printf("Enter number of child processs to create: ");
+        scanf("%d",&k);
+
+        int fds[k][2];
+
+        for(int i=0;i<k;i++){
+                if(pipe(fds[i])==-1){
+                        perror("pipe");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        for(int i=0;i<k;i++){
+                int pid=fork();
+                if(pid<0){
+                        perror("fork");
+                        exit(EXIT_FAILURE);
+                }
+
+                if(pid==0){
+                        close(fds[i][0]);
+
+                        char str[1024];
+                        sprintf(str,"This is child %d with PID: %d\n",i+1,getpid());
+
+                        write(fds[i][1],str,strlen(str));
+
+                        close(fds[i][1]);
+                        exit(0);
+                }
+        }
+
+        for(int i=0;i<k;i++){
+                close(fds[i][1]);
+        }
+
+        printf("\nParent Process reading msg from all chilldrens.\n");
+
+        char read1[1024];
+
+        for(int i=0;i<k;i++){
+                int n=read(fds[i][0],read1,sizeof(read1)-1);
+                if(n>0){
+                        read1[n]='\0';
+                        printf("Parent received: %s\n",read1);
+                }
+
+                close(fds[i][0]);
+        }
+
+        for(int i=0;i<k;i++){
+                wait(NULL);
+        }
+}
+
+```
+# 68. Develop a program that uses pipes for bidirectional communication between two processes, where each process can send and receive messages.
+
+```c
+
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<string.h>
+int main(){
+        int p2c[2];
+        int c2p[2];
+        if(pipe(p2c)==-1 || pipe(c2p)==-1){
+                perror("pipe");
+                exit(EXIT_FAILURE);
+        }
+
+        int pid=fork();
+
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+        else if(pid==0){
+                close(p2c[1]);
+                close(c2p[0]);
+
+                char str[1024];
+                int n=read(p2c[0],str,sizeof(str)-1);
+                str[n]='\0';
+                printf("Child recevied from parent: %s\n",str);
+
+
+                printf("Child Process: Enter data to send parent: ");
+                fgets(str,sizeof(str),stdin);
+                str[strlen(str)-1]='\0';
+                write(c2p[1],str,strlen(str));
+
+                close(c2p[1]);
+                close(p2c[0]);
+        }
+        else if (pid >0){
+                close(p2c[0]);
+                close(c2p[1]);
+
+                char write1[1024];
+                printf("Parent process: Enter data to send child: ");
+                fgets(write1,sizeof(write1),stdin);
+                write1[strlen(write1)-1]='\0';
+                write(p2c[1],write1,strlen(write1));
+
+
+                printf("Parent process: Received from the child: ");
+                int j=read(c2p[0],write1,sizeof(write1)-1);
+                write1[j]='\0';
+
+                printf("%s\n",write1);
+
+                close(p2c[1]);
+                close(c2p[0]);
+        }
+}
+
+```
+# 69. Create a C program where multiple processes write data to a named pipe, and another process reads from the named pipe and displays the received data.
+
+### Server.c
+```c
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+int main(){
+        char *file="myfifo69";
+        if(access(file,F_OK)==-1){
+                if(mkfifo(file,0640)==-1){
+                        perror("mkfifo");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        int fd=open(file,O_RDONLY);
+        if(fd==-1){
+                perror("open");
+                exit(EXIT_FAILURE);
+        }
+        char buffer[1024];
+        printf("Server starts reading.\n");
+        while(1){
+                int n=read(fd,buffer,sizeof(buffer)-1);
+                if(n>0){
+                        buffer[n]='\0';
+                        printf("Server received: %s\n",buffer);
+                }
+                else if(n==0){
+                        printf("No more data.\n");
+                        break;
+                }
+                else {
+                        perror("read");
+                        break;
+                }
+        }
+
+        close(fd);
+}
+
+```
+### Client.c
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<string.h>
+#include<fcntl.h>
+#include<sys/wait.h>
+#include<sys/stat.h>
+int main(){
+        char *file="myfifo69";
+        if(access(file,F_OK)==-1){
+                if(mkfifo(file,0640)==-1){
+                        perror("mkfifo");
+                        exit(EXIT_FAILURE);
+                }
+        }
+        char str[1024];
+        for(int i=0;i<3;i++){
+                int id=fork();
+                if(id<0){
+                        perror("fork");
+                        break;
+                }
+                if(id==0){
+                        int fd=open(file,O_WRONLY);
+                        if(fd==-1){
+                                perror("open");
+                                exit(EXIT_FAILURE);
+                        }
+                        fgets(str,sizeof(str),stdin);
+                        str[strlen(str)-1]='\0';
+
+                        write(fd,str,strlen(str));
+                        printf("Writer %d sent data to pipe.\n",getpid());
+                        close(fd);
+                        exit(0);
+                }
+        }
+        for(int i=0;i<3;i++){
+                wait(NULL);
+        }
+        return 0;
+}
+```
+# 70. Implement a program where two processes exchange messages through a named pipe until a termination signal is received.
+
+```c
+#include<stdio.h>
+#include<sys/wait.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<string.h>
+int main(){
+        char *fifo1="myfifo1";
+        char *fifo2="myfifo2";
+
+        if(access(fifo1,F_OK)==-1){
+                if(mkfifo(fifo1,0640)==-1){
+                        perror("mkfifo1");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        if(access(fifo2,F_OK)==-1){
+                if(mkfifo(fifo2,0640)==-1){
+                        perror("mkfifo2");
+                        exit(EXIT_FAILURE);
+                }
+        }
+
+        int pid=fork();
+
+        if(pid<0){
+                perror("fork");
+                exit(EXIT_FAILURE);
+        }
+
+        if(pid==0){
+                char send[1024];
+                int f_read1,f_write;
+                while(1){
+
+                         f_write=open(fifo1,O_WRONLY);
+                         f_read1=open(fifo2,O_RDONLY);
+                        printf("Child: Enter msg to send parent: ");
+                        fgets(send,sizeof(send),stdin);
+                        send[strlen(send)-1]='\0';
+
+                        write(f_write,send,strlen(send));
+
+                        if(strcmp(send,"exit")==0){
+                                close(f_write);
+                                close(f_read1);
+                                break;
+                        }
+
+
+                        int k=read(f_read1,send,sizeof(send)-1);
+                        if(k>0){
+                                send[k]='\0';
+                                printf("Child: Received from parent: %s\n",send);
+                                if(strcmp(send,"exit")==0){
+                                        printf("Child: Received termination signal.\n");
+                                        close(f_write);
+                                        close(f_read1);
+                                        break;
+                                }
+                        }
+                }
+                close(f_write);
+                close(f_read1);
+                exit(0);
+
+        }
+        else {
+                char receive[1024];
+                int f_read,f_write;
+                while(1){
+                         f_read=open(fifo1,O_RDONLY);
+                         f_write=open(fifo2,O_WRONLY);
+                        int n=read(f_read,receive,sizeof(receive)-1);
+                        if(n>0){
+                                receive[n]='\0';
+                                printf("Parent: Received from child: %s\n",receive);
+                                if(strcmp(receive,"exit")==0){
+                                        printf("Parent: Child ended the chat.\n");
+                                        close(f_read);
+                                        close(f_write);
+                                        break;
+                                }
+                        }
+
+                        printf("Parent: Enter msg to send child: ");
+                        fgets(receive,sizeof(receive),stdin);
+                        receive[strlen(receive)-1]='\0';
+                        write(f_write,receive,strlen(receive));
+                        if(strcmp(receive,"exit")==0){
+                                printf("Parent: Exiting chat.\n");
+                                close(f_read);
+                                close(f_write);
+                                break;
+                        }
+                }
+                        close(f_read);
+                        close(f_write);
+                        wait(NULL);
+
+
+
+        }
+}
+
+```
+# 71. Develop a C program that acts as a server, continuously reading requests from a named pipe, and a client program that sends requests to the server through the same named pipe
+
+### Client
+
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<fcntl.h>
+#include<sys/stat.h>
+#include<unistd.h>
+#include<string.h>
+int main(){
+        char *file="myfifo71";
+        if(access(file,F_OK)==-1){
+                printf("Server fifl not present.\n");
+                exit(EXIT_FAILURE);
+        }
+
+        int fd;
+        char buffer[1024];
+        printf("Client started to write data into fifo.\n");
+        while(1){
+                fd=open(file,O_WRONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                printf("Client: Enter msg into fifo: ");
+                fgets(buffer,sizeof(buffer),stdin);
+                buffer[strlen(buffer)-1]='\0';
+
+                write(fd,buffer,strlen(buffer));
+                close(fd);
+                if(strcmp(buffer,"exit")==0){
+
+                        printf("Client shutting down.\n");
+                        break;
+                }
+                //close(fd);
+
+        }
+}
+
+```
+
+### Server
+
+```c
+
+#include<stdio.h>
+#include<sys/stat.h>
+#include<stdlib.h>
+#include<fcntl.h>
+#include<unistd.h>
+#include<string.h>
+int main(){
+        char *file="myfifo71";
+
+        if(access(file,F_OK)==-1){
+                if(mkfifo(file,0640)==-1){
+                        perror("mkfifo");
+                        exit(EXIT_FAILURE);
+                }
+        }
+        int fd;
+
+        char buffer[1024];
+        printf("Server started waiting for message.\n");
+        while(1){
+                fd=open(file,O_RDONLY);
+                if(fd<0){
+                        perror("open");
+                        exit(EXIT_FAILURE);
+                }
+
+                int n=read(fd,buffer,sizeof(buffer)-1);
+                if(n>0){
+                        buffer[n]='\0';
+                        printf("Server read: %s\n",buffer);
+
+                        if(strcmp(buffer,"exit")==0){
+                                printf("Server shutting down.\n");
+                                break;
+                        }
+
+                }
+                close(fd);
+        }
+        unlink(file);
+}
+
+```
